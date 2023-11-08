@@ -2,30 +2,29 @@ package minioClient
 
 import (
 	"context"
-	"fmt"
-	"gomin-sync/internal/common"
+	"errors"
+	"gomin-sync/internal/config"
 	"mime"
 	"path/filepath"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 var (
-	client *minio.Client
+	client       *minio.Client
+	ErrFileExist = errors.New("file already exists")
 )
 
 func getClient() (*minio.Client, error) {
-	useSSL := false
-	// useSSL := true
-
 	// Initialize minio client object.
 	var err error
-	client, err = minio.New(common.GetEndPoint(), &minio.Options{
+	client, err = minio.New(config.GetEndPoint(), &minio.Options{
 		Creds: credentials.NewStaticV4(
-			common.GetAccessUser(),
-			common.GetAccessPassword(), ""),
-		Secure: useSSL,
+			config.GetAccessUser(),
+			config.GetAccessPassword(), ""),
+		Secure: config.GetUseSSL(),
 	})
 	if err != nil {
 		client = nil
@@ -43,7 +42,7 @@ func GetClient() (*minio.Client, error) {
 }
 
 // Upload upload file to remote minio bucket
-func Upload(bucketName, filePath, remotePath string) (int64, error) {
+func Upload(bucket, filePath, remotePath string, forceUpload bool) (int64, error) {
 	contentType := mime.TypeByExtension(filepath.Ext(filePath))
 	if contentType == "" {
 		contentType = "text/plain"
@@ -54,9 +53,21 @@ func Upload(bucketName, filePath, remotePath string) (int64, error) {
 		return 0, err
 	}
 	ctx := context.Background()
-	fmt.Printf("RemotePath: %v\n", remotePath)
+
+	if !forceUpload {
+		_, err = client.StatObject(
+			ctx, bucket, remotePath, minio.StatObjectOptions{})
+		if err == nil {
+			return 0, ErrFileExist
+		}
+
+		if !strings.Contains(err.Error(), "The specified key does not exist") {
+			return 0, err
+		}
+	}
+
 	info, err := client.FPutObject(
-		ctx, bucketName, remotePath, filePath,
+		ctx, bucket, remotePath, filePath,
 		minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
 		return 0, err

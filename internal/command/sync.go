@@ -1,8 +1,9 @@
-package fileSync
+package command
 
 import (
+	"errors"
 	"fmt"
-	"gomin-sync/internal/common"
+	"gomin-sync/internal/config"
 	"gomin-sync/internal/minioClient"
 	"io/fs"
 	"os"
@@ -19,6 +20,8 @@ var (
 )
 
 func syncDir(basePath, remotePrefix string) {
+	uploadCount := 0
+	failedCount := 0
 	filepath.WalkDir(basePath, func(path string, d fs.DirEntry, e error) error {
 		// Skip basePath
 		if path == basePath {
@@ -41,24 +44,35 @@ func syncDir(basePath, remotePrefix string) {
 		if err != nil {
 			return err
 		}
-		n, err := minioClient.Upload(
-			common.GetBucket(), path,
-			filepath.Join(remotePrefix, filepath.ToSlash(relative)))
+		_, err = minioClient.Upload(
+			config.GetBucket(), path,
+			filepath.Join(remotePrefix, filepath.ToSlash(relative)),
+			config.Force)
 
-		if err != nil {
-			fmt.Printf("  Failed to Upload %s, err: %v\n", path, err)
-		} else {
-			fmt.Printf("  Success to Upload %s, Size: %v\n", path, n)
+		if errors.Is(err, minioClient.ErrFileExist) {
+			fmt.Printf("%s is already exist\n", filepath.Base(relative))
+			return nil
 		}
 
+		if err != nil {
+			fmt.Printf("  Failed to Upload %s, err: %v\n", relative, err)
+			failedCount += 1
+		} else {
+			// fmt.Printf("  Success to Upload %s, Size: %v\n", relative, n)
+			uploadCount += 1
+		}
 		return nil
 	})
+
+	fmt.Printf("Uploaded %d files, Failed %d files.\n", uploadCount, failedCount)
 }
 
 func SyncDir() {
 	var remotePrefix string
 	pflag.StringVarP(&remotePrefix, "remotePrefix", "p", "", "remote prefix add to path")
+	pflag.BoolVarP(&config.Force, "forceUpload", "f", false, "force to upload files")
 	pflag.CommandLine.Parse(os.Args[2:])
+
 	left := pflag.Args()
 	if len(left) == 0 {
 		fmt.Printf("Please specific local dir to sync\n")
@@ -68,6 +82,7 @@ func SyncDir() {
 		fmt.Printf("too many path is given\n")
 		os.Exit(1)
 	}
-	common.LoadConfig()
+
+	config.LoadConfig("")
 	syncDir(left[0], remotePrefix)
 }

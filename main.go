@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"gomin-sync/internal/fileSync"
+	command "gomin-sync/internal/command"
 	"os"
 )
 
@@ -54,7 +54,7 @@ func main() {
 	operationSet.AddOperation(
 		"sync",
 		"sync dir with remote repo",
-		fileSync.SyncDir)
+		command.SyncDir)
 
 	if len(os.Args) == 1 {
 		operationSet.PrintInfo()
