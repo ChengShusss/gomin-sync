@@ -5,6 +5,7 @@ go 1.21.1
 require (
 	github.com/minio/minio-go/v7 v7.0.63
 	github.com/spf13/pflag v1.0.5
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (

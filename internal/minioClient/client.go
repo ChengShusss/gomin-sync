@@ -3,8 +3,8 @@ package minioClient
 import (
 	"context"
 	"fmt"
+	"gomin-sync/internal/common"
 	"mime"
-	"os"
 	"path/filepath"
 
 	"github.com/minio/minio-go/v7"
@@ -16,19 +16,15 @@ var (
 )
 
 func getClient() (*minio.Client, error) {
-	endpoint := os.Getenv("GOMIN_ENDPOINT")
-	accessKeyID := os.Getenv("GOMIN_ACCESS_USER")
-	secretAccessKey := os.Getenv("GOMIN_ACCESS_PASSWORD")
-	if endpoint == "" || accessKeyID == "" || secretAccessKey == "" {
-		fmt.Printf("Please Set Environment For GOMIN_ENDPOINT, GOMIN_ACCESS_USER and GOMIN_ACCESS_PASSWORD")
-		os.Exit(1)
-	}
-	useSSL := true
+	useSSL := false
+	// useSSL := true
 
 	// Initialize minio client object.
 	var err error
-	client, err = minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+	client, err = minio.New(common.GetEndPoint(), &minio.Options{
+		Creds: credentials.NewStaticV4(
+			common.GetAccessUser(),
+			common.GetAccessPassword(), ""),
 		Secure: useSSL,
 	})
 	if err != nil {

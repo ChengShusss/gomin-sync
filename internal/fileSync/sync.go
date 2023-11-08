@@ -2,6 +2,7 @@ package fileSync
 
 import (
 	"fmt"
+	"gomin-sync/internal/common"
 	"gomin-sync/internal/minioClient"
 	"io/fs"
 	"os"
@@ -41,7 +42,7 @@ func syncDir(basePath, remotePrefix string) {
 			return err
 		}
 		n, err := minioClient.Upload(
-			"clip", path,
+			common.GetBucket(), path,
 			filepath.Join(remotePrefix, filepath.ToSlash(relative)))
 
 		if err != nil {
@@ -67,5 +68,6 @@ func SyncDir() {
 		fmt.Printf("too many path is given\n")
 		os.Exit(1)
 	}
+	common.LoadConfig()
 	syncDir(left[0], remotePrefix)
 }
