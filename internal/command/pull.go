@@ -90,5 +90,4 @@ func PullDir() {
 
 	remotePath := "default"
 	downloadDir(left[0], remotePath)
-	config.GetBool("1")
 }

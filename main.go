@@ -61,6 +61,16 @@ func main() {
 		"download remote repo to local",
 		command.PullDir)
 
+	operationSet.AddOperation(
+		"init",
+		"init this path for sync",
+		command.Init)
+
+	// operationSet.AddOperation(
+	// 	"set",
+	// 	"configure for sync",
+	// 	command.PullDir)
+
 	if len(os.Args) == 1 {
 		operationSet.PrintInfo()
 		return

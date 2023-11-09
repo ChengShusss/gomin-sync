@@ -19,7 +19,6 @@ type ConfigType struct {
 	AccessPassword string `yaml:"accessPassword"`
 	Bucket         string `yaml:"bucket"`
 	UseSSL         bool   `yaml:"useSSL"`
-	Force          bool
 }
 
 var (
