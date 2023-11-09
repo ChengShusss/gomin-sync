@@ -56,6 +56,11 @@ func main() {
 		"sync dir with remote repo",
 		command.SyncDir)
 
+	operationSet.AddOperation(
+		"pull",
+		"download remote repo to local",
+		command.PullDir)
+
 	if len(os.Args) == 1 {
 		operationSet.PrintInfo()
 		return

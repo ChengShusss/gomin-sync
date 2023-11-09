@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"gomin-sync/internal/config"
+	"io"
 	"mime"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -73,4 +75,41 @@ func Upload(bucket, filePath, remotePath string, forceUpload bool) (int64, error
 		return 0, err
 	}
 	return info.Size, err
+}
+
+func ListObjectsByPrefix(bucket, prefix string) (<-chan minio.ObjectInfo, error) {
+	client, err := GetClient()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+
+	return client.ListObjects(ctx, bucket, minio.ListObjectsOptions{
+		Prefix:    prefix,
+		Recursive: true,
+	}), nil
+}
+
+func DownloadObject(bucket, localPath, remotePath string) error {
+	client, err := GetClient()
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+
+	object, err := client.GetObject(
+		ctx, bucket, remotePath, minio.GetObjectOptions{})
+	if err != nil {
+		return err
+	}
+	defer object.Close()
+
+	f, err := os.Create(localPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = io.Copy(f, object)
+
+	return err
 }
