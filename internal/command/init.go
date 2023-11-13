@@ -26,7 +26,7 @@ func initDir(path string, cf config.ConfigType) {
 			os.Exit(1)
 		}
 	} else {
-		fmt.Println("This Path is already init, use command 'set' to configure")
+		fmt.Println("This Path is already init, use command 'config' to configure")
 		os.Exit(1)
 	}
 

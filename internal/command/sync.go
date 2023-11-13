@@ -16,6 +16,7 @@ import (
 var (
 	ignoreList = []string{
 		".git",
+		".sync",
 	}
 )
 
@@ -74,15 +75,15 @@ func SyncDir() {
 	pflag.CommandLine.Parse(os.Args[2:])
 
 	left := pflag.Args()
+	var local string
 	if len(left) == 0 {
-		fmt.Printf("Please specific local dir to sync\n")
-		os.Exit(1)
+		local = "."
 	}
 	if len(left) > 1 {
 		fmt.Printf("too many path is given\n")
 		os.Exit(1)
 	}
 
-	config.LoadConfig("")
-	syncDir(left[0], remotePrefix)
+	config.LoadConfig(local)
+	syncDir(local, remotePrefix)
 }

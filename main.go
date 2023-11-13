@@ -51,6 +51,17 @@ func (s *OperationSet) PrintInfo() {
 }
 
 func main() {
+
+	operationSet.AddOperation(
+		"init",
+		"init this path for sync",
+		command.Init)
+
+	operationSet.AddOperation(
+		"config",
+		"get or set configuration for sync",
+		command.Config)
+
 	operationSet.AddOperation(
 		"sync",
 		"sync dir with remote repo",
@@ -60,11 +71,6 @@ func main() {
 		"pull",
 		"download remote repo to local",
 		command.PullDir)
-
-	operationSet.AddOperation(
-		"init",
-		"init this path for sync",
-		command.Init)
 
 	// operationSet.AddOperation(
 	// 	"set",

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	ConfigName = "config.yaml"
+	ConfigName = ".sync/config.yaml"
 )
 
 type ConfigType struct {
@@ -26,15 +26,16 @@ var (
 	Force  bool
 )
 
-func LoadConfig(file string) {
-	if file == "" {
+func LoadConfig(path string) {
+	var file string
+	if path == "" {
 		ex, err := os.Executable()
 		if err != nil {
 			log.Fatalf("cannot get executable: %v\n", err)
 		}
-		exPath := filepath.Dir(ex)
-		file = filepath.Join(exPath, ConfigName)
+		path = filepath.Dir(ex)
 	}
+	file = filepath.Join(path, ConfigName)
 
 	data, err := os.ReadFile(file)
 	if err != nil {

@@ -79,9 +79,9 @@ func PullDir() {
 	pflag.CommandLine.Parse(os.Args[2:])
 
 	left := pflag.Args()
+	var local string
 	if len(left) == 0 {
-		fmt.Printf("Please specific local dir download to\n")
-		os.Exit(1)
+		local = "."
 	}
 	if len(left) > 1 {
 		fmt.Printf("too many path is given\n")
@@ -89,5 +89,5 @@ func PullDir() {
 	}
 
 	remotePath := "default"
-	downloadDir(left[0], remotePath)
+	downloadDir(local, remotePath)
 }
