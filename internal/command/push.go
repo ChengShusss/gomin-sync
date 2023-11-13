@@ -20,7 +20,7 @@ var (
 	}
 )
 
-func syncDir(basePath, remotePrefix string) {
+func pushDir(basePath, remotePrefix string) {
 	uploadCount := 0
 	failedCount := 0
 	filepath.WalkDir(basePath, func(path string, d fs.DirEntry, e error) error {
@@ -45,7 +45,7 @@ func syncDir(basePath, remotePrefix string) {
 		if err != nil {
 			return err
 		}
-		_, err = minioClient.Upload(
+		n, err := minioClient.Upload(
 			config.GetBucket(), path,
 			filepath.Join(remotePrefix, filepath.ToSlash(relative)),
 			config.Force)
@@ -59,7 +59,9 @@ func syncDir(basePath, remotePrefix string) {
 			fmt.Printf("  Failed to Upload %s, err: %v\n", relative, err)
 			failedCount += 1
 		} else {
-			// fmt.Printf("  Success to Upload %s, Size: %v\n", relative, n)
+			if config.Verbose {
+				fmt.Printf("  Success to Upload %s, Size: %v\n", relative, n)
+			}
 			uploadCount += 1
 		}
 		return nil
@@ -68,10 +70,11 @@ func syncDir(basePath, remotePrefix string) {
 	fmt.Printf("Uploaded %d files, Failed %d files.\n", uploadCount, failedCount)
 }
 
-func SyncDir() {
+func PushDir() {
 	var remotePrefix string
 	pflag.StringVarP(&remotePrefix, "remotePrefix", "p", "", "remote prefix add to path")
 	pflag.BoolVarP(&config.Force, "forceUpload", "f", false, "force to upload files")
+	pflag.BoolVarP(&config.Verbose, "verbose", "v", false, "show detailed infos")
 	pflag.CommandLine.Parse(os.Args[2:])
 
 	left := pflag.Args()
@@ -85,5 +88,5 @@ func SyncDir() {
 	}
 
 	config.LoadConfig(local)
-	syncDir(local, remotePrefix)
+	pushDir(local, remotePrefix)
 }

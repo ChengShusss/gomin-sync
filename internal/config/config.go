@@ -24,6 +24,7 @@ type ConfigType struct {
 var (
 	Config ConfigType
 	Force  bool
+	Verbose bool
 )
 
 func LoadConfig(path string) {

@@ -63,9 +63,9 @@ func main() {
 		command.Config)
 
 	operationSet.AddOperation(
-		"sync",
-		"sync dir with remote repo",
-		command.SyncDir)
+		"push",
+		"push local dir to remote repo",
+		command.PushDir)
 
 	operationSet.AddOperation(
 		"pull",
