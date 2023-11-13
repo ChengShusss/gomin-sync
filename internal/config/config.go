@@ -19,11 +19,12 @@ type ConfigType struct {
 	AccessPassword string `yaml:"accessPassword"`
 	Bucket         string `yaml:"bucket"`
 	UseSSL         bool   `yaml:"useSSL"`
+	Prefix         string `yaml:"prefix"`
 }
 
 var (
-	Config ConfigType
-	Force  bool
+	Config  ConfigType
+	Force   bool
 	Verbose bool
 )
 

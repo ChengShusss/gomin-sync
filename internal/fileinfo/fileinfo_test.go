@@ -19,9 +19,9 @@ func TestTransInfoString(t *testing.T) {
 		},
 		{
 			"Basic with file name",
-			"1600000000       123",
-			1600000000,
-			"123",
+			"1699891828     gm-sync",
+			1699891828,
+			"gm-sync",
 		},
 	}
 	for _, c := range cases {
@@ -36,4 +36,19 @@ func TestTransInfoString(t *testing.T) {
 				res.ModifyAt, res.FileName)
 		}
 	}
+}
+
+func TestLoadFileInfo(t *testing.T) {
+
+	LoadFileInfo("/home/cheng/workSpace/go/src/gomin-sync/build")
+	// fmt.Printf("%+v\n", res)
+	SetFileModifyTime("123", 12345)
+	r, _ := GetFileModifyTime("123")
+	// fmt.Printf("Modifytime: %v\n", r)
+
+	if r != 12345 {
+		t.Fatalf("Failed to get setted value")
+	}
+
+	WriteFileInfo("/home/cheng/workSpace/go/src/gomin-sync/build")
 }

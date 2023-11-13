@@ -20,6 +20,8 @@ func set(key, value string) {
 		config.Config.Bucket = value
 	case "endPoint":
 		config.Config.EndPoint = value
+	case "prefix":
+		config.Config.Prefix = value
 	case "useSSL":
 		switch value {
 		case "true", "True", "T", "t":
@@ -47,6 +49,7 @@ func get(keys []string) {
 		"accessUser":     config.Config.AccessUser,
 		"accessPassword": config.Config.AccessPassword,
 		"bucket":         config.Config.Bucket,
+		"prefix":         config.Config.Prefix,
 		"useSSL":         config.Config.UseSSL,
 	}
 

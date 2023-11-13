@@ -4,13 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"gomin-sync/internal/config"
+	"gomin-sync/internal/fileinfo"
 	"gomin-sync/internal/minioClient"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/pflag"
+)
+
+const (
+	BlobName = ".sync/blob"
 )
 
 var (
@@ -20,9 +26,13 @@ var (
 	}
 )
 
-func pushDir(basePath, remotePrefix string) {
+func pushDir(basePath string) {
 	uploadCount := 0
 	failedCount := 0
+
+	fileinfo.LoadFileInfo("")
+	defer fileinfo.WriteFileInfo("")
+
 	filepath.WalkDir(basePath, func(path string, d fs.DirEntry, e error) error {
 		// Skip basePath
 		if path == basePath {
@@ -47,7 +57,7 @@ func pushDir(basePath, remotePrefix string) {
 		}
 		n, err := minioClient.Upload(
 			config.GetBucket(), path,
-			filepath.Join(remotePrefix, filepath.ToSlash(relative)),
+			filepath.Join(config.Config.Prefix, filepath.ToSlash(relative)),
 			config.Force)
 
 		if errors.Is(err, minioClient.ErrFileExist) {
@@ -63,6 +73,9 @@ func pushDir(basePath, remotePrefix string) {
 				fmt.Printf("  Success to Upload %s, Size: %v\n", relative, n)
 			}
 			uploadCount += 1
+
+			// Mark file upload time
+			fileinfo.SetFileModifyTime(path, time.Now().Unix())
 		}
 		return nil
 	})
@@ -72,9 +85,12 @@ func pushDir(basePath, remotePrefix string) {
 
 func PushDir() {
 	var remotePrefix string
-	pflag.StringVarP(&remotePrefix, "remotePrefix", "p", "", "remote prefix add to path")
-	pflag.BoolVarP(&config.Force, "forceUpload", "f", false, "force to upload files")
-	pflag.BoolVarP(&config.Verbose, "verbose", "v", false, "show detailed infos")
+	pflag.StringVarP(
+		&remotePrefix, "remotePrefix", "p", "", "remote prefix add to path")
+	pflag.BoolVarP(
+		&config.Force, "forceUpload", "f", false, "force to upload files")
+	pflag.BoolVarP(
+		&config.Verbose, "verbose", "v", false, "show detailed infos")
 	pflag.CommandLine.Parse(os.Args[2:])
 
 	left := pflag.Args()
@@ -88,5 +104,6 @@ func PushDir() {
 	}
 
 	config.LoadConfig(local)
-	pushDir(local, remotePrefix)
+	config.Config.Prefix = remotePrefix
+	pushDir(local)
 }

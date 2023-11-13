@@ -54,6 +54,7 @@ func Init() {
 	pflag.StringVarP(&cf.AccessUser, "user", "u", "", "minio user for auth")
 	pflag.StringVarP(&cf.AccessPassword, "password", "p", "", "minio password for auth")
 	pflag.StringVarP(&cf.Bucket, "bucket", "b", "", "specific bucket for sync")
+	pflag.StringVarP(&cf.Prefix, "prefix", "r", "", "specific common prefix for sync")
 	pflag.BoolVarP(&cf.UseSSL, "sslEnable", "s", false, "whether use ssl for minio")
 	pflag.CommandLine.Parse(os.Args[2:])
 

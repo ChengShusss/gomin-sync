@@ -2,6 +2,7 @@ package fileinfo
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,16 +11,24 @@ import (
 )
 
 const (
-	ColTimeLen = 15
-)
-
-var (
-	FileInfoName = ".sync/fileInfo"
+	ColTimeLen   = 15
+	FileInfoName = ".sync/blob"
 )
 
 type FileInfo struct {
 	ModifyAt int64
 	FileName string
+}
+
+type FileMap map[string]int64
+
+var (
+	fileMap     = FileMap{}
+	ErrNotFound = errors.New("no record for this file")
+)
+
+func (fi *FileInfo) String() string {
+	return fmt.Sprintf("%-15d%s\n", fi.ModifyAt, fi.FileName)
 }
 
 func transInfoString(s string) *FileInfo {
@@ -35,19 +44,17 @@ func transInfoString(s string) *FileInfo {
 	}
 
 	info.ModifyAt = t
-	info.FileName = strings.TrimSpace(s[ColTimeLen+1:])
+	info.FileName = strings.TrimSpace(s[ColTimeLen:])
 
 	return &info
 }
 
-func LoadFileInfo(basePath string) {
+func LoadFileInfo(basePath string) map[string]int64 {
 	fileName := filepath.Join(basePath, FileInfoName)
-	fileMap := map[string]int64{}
 
 	file, err := os.Open(fileName)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return fileMap
 	}
 	defer file.Close()
 
@@ -56,15 +63,40 @@ func LoadFileInfo(basePath string) {
 		line := scanner.Text()
 		fileInfo := transInfoString(line)
 		fileMap[fileInfo.FileName] = fileInfo.ModifyAt
-
-		fmt.Println(scanner.Text())
+		// fmt.Println(scanner.Text())
 	}
-
-	fmt.Printf("%+v\n", fileMap)
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
+	return fileMap
+}
+
+func WriteFileInfo(basePath string) {
+	fileName := filepath.Join(basePath, FileInfoName)
+
+	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		fmt.Printf("Failed to open Upload Record file [%s], err: %v\n", fileName, err)
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	for name, tm := range fileMap {
+		f.WriteString(fmt.Sprintf("%-15d%s\n", tm, name))
+	}
+}
+
+func SetFileModifyTime(file string, tm int64) {
+	fileMap[file] = tm
+}
+
+func GetFileModifyTime(file string) (int64, error) {
+	t, ok := fileMap[file]
+	if !ok {
+		return -1, ErrNotFound
+	}
+	return t, nil
 }
