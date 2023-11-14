@@ -93,10 +93,10 @@ func SetFileModifyTime(file string, tm int64) {
 	fileMap[file] = tm
 }
 
-func GetFileModifyTime(file string) (int64, error) {
+func GetFileModifyTime(file string) int64 {
 	t, ok := fileMap[file]
 	if !ok {
-		return -1, ErrNotFound
+		return -1
 	}
-	return t, nil
+	return t
 }

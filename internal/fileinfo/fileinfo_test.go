@@ -43,7 +43,7 @@ func TestLoadFileInfo(t *testing.T) {
 	LoadFileInfo("/home/cheng/workSpace/go/src/gomin-sync/build")
 	// fmt.Printf("%+v\n", res)
 	SetFileModifyTime("123", 12345)
-	r, _ := GetFileModifyTime("123")
+	r := GetFileModifyTime("123")
 	// fmt.Printf("Modifytime: %v\n", r)
 
 	if r != 12345 {
