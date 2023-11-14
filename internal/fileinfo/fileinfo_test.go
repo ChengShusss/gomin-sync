@@ -1,6 +1,7 @@
 package fileinfo
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -49,6 +50,8 @@ func TestLoadFileInfo(t *testing.T) {
 	if r != 12345 {
 		t.Fatalf("Failed to get setted value")
 	}
+
+	fmt.Printf("%+v\n", fileMap)
 
 	WriteFileInfo("/home/cheng/workSpace/go/src/gomin-sync/build")
 }

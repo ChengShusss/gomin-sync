@@ -23,10 +23,12 @@ var (
 	ignoreList = []string{
 		".git",
 		".sync",
+		"gm-sync",
 	}
 	ErrFileForked       = errors.New("file modified both local and remote")
 	ErrFileNoChange     = errors.New("file has no change after last upload")
 	ErrFileRemoteModify = errors.New("file modified remote")
+	ErrFileLocalModify  = errors.New("file modified local")
 )
 
 func pushDir(basePath string) {

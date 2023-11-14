@@ -101,7 +101,7 @@ func DownloadObject(bucket, localPath, remotePath string) error {
 	}
 	defer object.Close()
 
-	f, err := os.Create(localPath)
+	f, err := os.OpenFile(localPath, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
