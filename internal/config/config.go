@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -26,9 +27,14 @@ var (
 	Config  ConfigType
 	Force   bool
 	Verbose bool
+
+	BuildTime string
 )
 
 func LoadConfig(path string) {
+	if Verbose {
+		fmt.Printf("Build Time: %v\n", BuildTime)
+	}
 	var file string
 	if path == "" {
 		ex, err := os.Executable()

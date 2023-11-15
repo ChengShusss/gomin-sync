@@ -168,4 +168,9 @@ func PushDir() {
 	config.LoadConfig(local)
 	config.Config.Prefix = remotePrefix
 	pushDir(local)
+
+	for _, file := range fileinfo.GetUnvisitedFiles() {
+		fmt.Printf("Deleted: %v\n", file)
+	}
+
 }

@@ -18,18 +18,15 @@ const (
 type FileInfo struct {
 	ModifyAt int64
 	FileName string
+	Visited  bool
 }
 
-type FileMap map[string]int64
+type FileMap map[string]FileInfo
 
 var (
 	fileMap     = FileMap{}
 	ErrNotFound = errors.New("no record for this file")
 )
-
-func (fi *FileInfo) String() string {
-	return fmt.Sprintf("%-15d%s\n", fi.ModifyAt, fi.FileName)
-}
 
 func transInfoString(s string) *FileInfo {
 	info := FileInfo{}
@@ -49,12 +46,12 @@ func transInfoString(s string) *FileInfo {
 	return &info
 }
 
-func LoadFileInfo(basePath string) map[string]int64 {
+func LoadFileInfo(basePath string) {
 	fileName := filepath.Join(basePath, FileInfoName)
 
 	file, err := os.Open(fileName)
 	if err != nil {
-		return fileMap
+		return
 	}
 	defer file.Close()
 
@@ -62,7 +59,7 @@ func LoadFileInfo(basePath string) map[string]int64 {
 	for scanner.Scan() {
 		line := scanner.Text()
 		fileInfo := transInfoString(line)
-		fileMap[fileInfo.FileName] = fileInfo.ModifyAt
+		fileMap[fileInfo.FileName] = *fileInfo
 		// fmt.Println(scanner.Text())
 	}
 
@@ -70,8 +67,6 @@ func LoadFileInfo(basePath string) map[string]int64 {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	return fileMap
 }
 
 func WriteFileInfo(basePath string) {
@@ -84,13 +79,22 @@ func WriteFileInfo(basePath string) {
 	}
 	defer f.Close()
 
-	for name, tm := range fileMap {
-		f.WriteString(fmt.Sprintf("%-15d%s\n", tm, name))
+	for _, fi := range fileMap {
+		f.WriteString(fmt.Sprintf("%-15d%s\n", fi.ModifyAt, fi.FileName))
 	}
 }
 
 func SetFileModifyTime(file string, tm int64) {
-	fileMap[file] = tm
+	fi, ok := fileMap[file]
+	if !ok {
+		fi = FileInfo{
+			FileName: file,
+		}
+	}
+
+	fi.ModifyAt = tm
+	fi.Visited = true
+	fileMap[file] = fi
 }
 
 func GetFileModifyTime(file string) int64 {
@@ -98,5 +102,19 @@ func GetFileModifyTime(file string) int64 {
 	if !ok {
 		return -1
 	}
-	return t
+	t.Visited = true
+	fileMap[file] = t
+	return t.ModifyAt
+}
+
+func GetUnvisitedFiles() []string {
+	res := []string{}
+
+	for _, fi := range fileMap {
+		if !fi.Visited {
+			res = append(res, fi.FileName)
+		}
+
+	}
+	return res
 }

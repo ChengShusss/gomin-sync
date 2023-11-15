@@ -172,4 +172,8 @@ func PullDir() {
 
 	remotePath := config.Config.Prefix
 	downloadDir(local, remotePath)
+
+	for _, file := range fileinfo.GetUnvisitedFiles() {
+		fmt.Printf("Deleted: %v\n", file)
+	}
 }
