@@ -3,9 +3,11 @@ package command
 import (
 	"fmt"
 	"gomin-sync/internal/config"
+	"gomin-sync/internal/fileinfo"
 	"gomin-sync/internal/minioClient"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Counter struct {
@@ -51,6 +53,7 @@ func UploadFile(local, remote string) {
 		return
 	}
 
+	fileinfo.SetFileModifyTime(local, time.Now().Unix())
 	cnt.Upload += 1
 	if config.Verbose {
 		fmt.Printf("  Success to Upload %s, Size: %v\n", local, n)
