@@ -48,6 +48,16 @@ func syncDir(localPath, remotePath string) {
 	}
 
 	for f, i := range syncFileMap {
+		if i.RemotePath == "" {
+			relative, err := filepath.Rel(localPath, f)
+			if err != nil {
+				fmt.Printf("Assemble remote path %v failed, err: %v\n", f, err)
+				continue
+			}
+			i.RemotePath = filepath.Join(
+				config.Config.Prefix,
+				filepath.ToSlash(relative))
+		}
 		syncFile(f, i)
 	}
 
@@ -62,7 +72,7 @@ func syncFile(f string, i fileStat) {
 
 	op := fileinfo.GetSyncStatus(lStat, rStat)
 	if config.Debug {
-		fmt.Printf("[%v] %v\n", fileinfo.OperationString(op), f)
+		fmt.Printf("[%v] %v\n", fileinfo.OperationString(op), i.RemotePath)
 	}
 
 	switch op {
@@ -172,7 +182,7 @@ func statRemoteFiles(localBase, remotePath string) error {
 }
 
 func SyncDir() {
-	config.LoadConfig("")
+	config.LoadConfig(".")
 
 	pflag.BoolVarP(&config.Info, "info", "i", false,
 		"only print info, not execute actually")

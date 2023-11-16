@@ -152,7 +152,7 @@ func hasPrefix(path string) bool {
 }
 
 func PullDir() {
-	config.LoadConfig("")
+	config.LoadConfig(".")
 
 	pflag.BoolVarP(&config.Force, "force", "f", false,
 		"force to download files, regardless of exist local files")
