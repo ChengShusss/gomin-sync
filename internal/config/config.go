@@ -27,6 +27,8 @@ var (
 	Config  ConfigType
 	Force   bool
 	Verbose bool
+	Info    bool
+	Debug   bool = true
 
 	BuildTime string
 )

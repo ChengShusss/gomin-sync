@@ -111,6 +111,26 @@ func DownloadObject(bucket, localPath, remotePath string) error {
 	return err
 }
 
+func GetObjectModifyTime(bucket, remotePath string) (int64, error) {
+	client, err := GetClient()
+	if err != nil {
+		return 0, err
+	}
+	ctx := context.TODO()
+	info, err := client.StatObject(
+		ctx, bucket, remotePath, minio.StatObjectOptions{})
+	if err == nil {
+		return info.LastModified.Unix() + timeOffset, nil
+	}
+
+	if strings.Contains(err.Error(), "The specified key does not exist") {
+		// Means not Object-Not-Exists error, should return origin error
+		return 0, nil
+	}
+
+	return 0, err
+}
+
 func CheckObject(bucket, remotePath string, tLocal, tLastUpload int64) (int, error) {
 	client, err := GetClient()
 	if err != nil {

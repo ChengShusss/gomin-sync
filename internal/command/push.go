@@ -166,7 +166,9 @@ func PushDir() {
 	}
 
 	config.LoadConfig(local)
-	config.Config.Prefix = remotePrefix
+	if remotePrefix != "" {
+		config.Config.Prefix = remotePrefix
+	}
 	pushDir(local)
 
 	for _, file := range fileinfo.GetUnvisitedFiles() {

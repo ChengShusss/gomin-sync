@@ -13,6 +13,22 @@ import (
 const (
 	ColTimeLen   = 15
 	FileInfoName = ".sync/blob"
+
+	FileNul = iota // file not exist
+	FileAdd        // file is added
+	FileMod        // file is modified
+	FileDel        // file is deleted
+	FileUnc        // file has no change
+)
+
+const (
+	OpInvalid = iota
+	OpPush
+	OpPull
+	OpDelLocal
+	OpDelRemote
+	OpFork
+	OpNull
 )
 
 type FileInfo struct {
@@ -26,6 +42,45 @@ type FileMap map[string]FileInfo
 var (
 	fileMap     = FileMap{}
 	ErrNotFound = errors.New("no record for this file")
+
+	// map[localStatus]map[remoteStatus]Operation
+	OpMap = map[int]map[int]int{
+		FileNul: { // if local file is Nul, then tUpload must be 0
+			FileNul: OpInvalid, // Not supposed to use this
+			FileAdd: OpPull,
+			FileMod: OpInvalid, // Not supposed to use this
+			FileDel: OpInvalid, // Not supposed to use this
+			FileUnc: OpInvalid, // Not supposed to use this
+		},
+		FileAdd: { // if local file is Add, then tUpload must be 0
+			FileNul: OpPush,
+			FileAdd: OpFork,
+			FileMod: OpInvalid, // Not supposed to use this
+			FileDel: OpInvalid,
+			FileUnc: OpInvalid,
+		},
+		FileMod: { // if local file is Mod, then tUpload must not be 0
+			FileNul: OpInvalid, // Not supposed to use this
+			FileAdd: OpInvalid, // Not supposed to use this
+			FileMod: OpFork,
+			FileDel: OpFork,
+			FileUnc: OpPush,
+		},
+		FileDel: { // if local file is Del, then tUpload must not be 0
+			FileNul: OpInvalid, // Not supposed to use this
+			FileAdd: OpInvalid, // Not supposed to use this
+			FileMod: OpFork,
+			FileDel: OpNull,
+			FileUnc: OpDelRemote,
+		},
+		FileUnc: { // if local file is Unc, then tUpload/tLocal must not be 0
+			FileNul: OpInvalid,
+			FileAdd: OpInvalid, // Not supposed to appear
+			FileMod: OpPull,
+			FileDel: OpDelLocal,
+			FileUnc: OpNull,
+		},
+	}
 )
 
 func transInfoString(s string) *FileInfo {
@@ -100,7 +155,7 @@ func SetFileModifyTime(file string, tm int64) {
 func GetFileModifyTime(file string) int64 {
 	t, ok := fileMap[file]
 	if !ok {
-		return -1
+		return 0
 	}
 	t.Visited = true
 	fileMap[file] = t
@@ -117,4 +172,67 @@ func GetUnvisitedFiles() []string {
 
 	}
 	return res
+}
+
+// CheckFileState - return local file status and remote file status
+// Params
+//
+//	tLocal : local file last modified time;
+//	tUpload: localhost upload file time;
+//	tRemote: remote file last modified time;
+//
+// Return
+//
+//	localFileStatus, remoteFileStatus
+// func CheckFileState(tLocal, tUpload, tRemote int64) (int, int) {
+// 	if tLocal == 0 {
+// 		return Ob
+// 	}
+// }
+
+func CheckFile(tTarget, tUpload int64) int {
+	switch {
+	case tTarget == 0 && tUpload == 0:
+		return FileNul
+	case tTarget == 0:
+		return FileDel
+	case tUpload == 0:
+		return FileAdd
+	case tUpload >= tTarget:
+		return FileUnc
+	case tTarget > tUpload:
+		return FileMod
+	}
+
+	// Invalid case, should not go here
+	return FileUnc
+}
+
+func GetSyncStatus(lStatus, rStatus int) int {
+	mm, ok := OpMap[lStatus]
+	if !ok {
+		return OpInvalid
+	}
+	r, ok := mm[rStatus]
+	if !ok {
+		return OpInvalid
+	}
+	return r
+}
+
+func OperationString(op int) string {
+	m := map[int]string{
+		OpPush:      "Push",
+		OpPull:      "Pull",
+		OpDelLocal:  "DelL",
+		OpDelRemote: "DelR",
+		OpNull:      "Null",
+		OpInvalid:   "Err-",
+	}
+
+	s, ok := m[op]
+	if !ok {
+		return "Inva"
+	}
+	return s
 }
