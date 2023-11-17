@@ -40,20 +40,20 @@ func (c *Counter) PrintCnt() {
 		warnIcon = "!"
 	}
 
-	fmt.Println("=================")
-	fmt.Println("|Summary:")
-	fmt.Println("-----------------")
-	fmt.Printf("| Upload:    %v\n", c.Upload)
-	fmt.Printf("| Download:  %v\n", c.Download)
-	fmt.Printf("| DelLocal:  %v\n", c.DelLocal)
-	fmt.Printf("| DelRemote: %v\n", c.DelRemote)
-	fmt.Printf("|%sForked:    %v\n", warnIcon, c.Fork)
-	fmt.Printf("| Failed:    %v\n", c.Failed)
+	fmt.Println("=====================")
+	fmt.Println("| Summary:          |")
+	fmt.Println("|-------------------|")
+	fmt.Printf("| Upload:    %6d |\n", c.Upload)
+	fmt.Printf("| Download:  %6d |\n", c.Download)
+	fmt.Printf("| DelLocal:  %6d |\n", c.DelLocal)
+	fmt.Printf("| DelRemote: %6d |\n", c.DelRemote)
+	fmt.Printf("|%sForked:    %6d |\n", warnIcon, c.Fork)
+	fmt.Printf("| Failed:    %6d |\n", c.Failed)
 
-	fmt.Println("-----------------")
-	fmt.Printf("| Total :    %v\n",
+	fmt.Println("|-------------------|")
+	fmt.Printf("| Total :    %6d |\n",
 		len(fileMap))
-	fmt.Println("=================")
+	fmt.Println("=====================")
 }
 
 func UploadFile(local, remote string) {

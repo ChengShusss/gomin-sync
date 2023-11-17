@@ -63,6 +63,12 @@ func pushDir(localPath string) {
 }
 
 func pushFile(f string, i fileStat) {
+
+	if config.Force {
+		UploadFile(f, i.RemotePath)
+		return
+	}
+
 	lStat := fileinfo.CheckFile(i.tLocal, i.tUpload)
 	rStat := fileinfo.CheckFile(i.tRemote, i.tUpload)
 

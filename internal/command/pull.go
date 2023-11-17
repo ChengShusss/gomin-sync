@@ -123,6 +123,12 @@ func pullDir(localPath, remotePath string) {
 }
 
 func pullFile(f string, i fileStat) {
+
+	if config.Force {
+		DownloadFile(f, i.RemotePath)
+		return
+	}
+
 	lStat := fileinfo.CheckFile(i.tLocal, i.tUpload)
 	rStat := fileinfo.CheckFile(i.tRemote, i.tUpload)
 
