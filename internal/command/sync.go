@@ -14,8 +14,8 @@ var timeOffset int64 = -32
 
 func syncDir(localPath, remotePath string) {
 
-	fileinfo.LoadFileInfo("")
-	defer fileinfo.WriteFileInfo("")
+	fileinfo.LoadFileInfo(localPath)
+	defer fileinfo.WriteFileInfo(localPath)
 
 	err := statLocalFiles(localPath)
 	if err != nil {
@@ -69,6 +69,7 @@ func syncFile(f string, i fileStat) {
 		// delete remote file
 		fmt.Printf("! Need to implement: Del Remote file")
 	case fileinfo.OpFork:
+		fmt.Printf("  Local: %d, Remote: %v\n", lStat, rStat)
 		// Report fork status
 		fmt.Printf("! Need to implement: Handle Forked file")
 	default:
@@ -80,7 +81,6 @@ func syncFile(f string, i fileStat) {
 }
 
 func SyncDir() {
-	config.LoadConfig(".")
 
 	pflag.BoolVarP(&config.Info, "info", "i", false,
 		"only print info, not execute actually")
@@ -92,13 +92,17 @@ func SyncDir() {
 
 	left := pflag.Args()
 	var local string
-	if len(left) == 0 {
+	switch len(left) {
+	case 0:
 		local = "."
-	}
-	if len(left) > 1 {
+	case 1:
+		local = left[0]
+	default:
 		fmt.Printf("too many path is given\n")
 		os.Exit(1)
 	}
+
+	config.LoadConfig(local)
 
 	remotePath := config.Config.Prefix
 	syncDir(local, remotePath)

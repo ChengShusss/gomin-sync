@@ -29,8 +29,8 @@ var (
 
 func pushDir(localPath string) {
 
-	fileinfo.LoadFileInfo("")
-	defer fileinfo.WriteFileInfo("")
+	fileinfo.LoadFileInfo(localPath)
+	defer fileinfo.WriteFileInfo(localPath)
 
 	err := statLocalFiles(localPath)
 	if err != nil {
@@ -119,23 +119,23 @@ func PushDir() {
 	pflag.CommandLine.Parse(os.Args[2:])
 
 	left := pflag.Args()
+	fmt.Printf("Left args: %v\n", left)
 	var local string
-	if len(left) == 0 {
+	switch len(left) {
+	case 0:
 		local = "."
-	}
-	if len(left) > 1 {
+	case 1:
+		local = left[0]
+	default:
 		fmt.Printf("too many path is given\n")
 		os.Exit(1)
 	}
 
 	config.LoadConfig(local)
+
 	if remotePrefix != "" {
 		config.Config.Prefix = remotePrefix
 	}
+	
 	pushDir(local)
-
-	for _, file := range fileinfo.GetUnvisitedFiles() {
-		fmt.Printf("Deleted: %v\n", file)
-	}
-
 }

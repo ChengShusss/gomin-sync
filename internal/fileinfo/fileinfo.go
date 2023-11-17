@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"gomin-sync/internal/config"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -115,12 +116,15 @@ func LoadFileInfo(basePath string) {
 		line := scanner.Text()
 		fileInfo := transInfoString(line)
 		fileMap[fileInfo.FileName] = *fileInfo
-		// fmt.Println(scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+
+	if config.Debug {
+		fmt.Printf("Len of Blog: %v\n", len(fileMap))
 	}
 }
 
@@ -173,22 +177,6 @@ func GetUnvisitedFiles() []string {
 	}
 	return res
 }
-
-// CheckFileState - return local file status and remote file status
-// Params
-//
-//	tLocal : local file last modified time;
-//	tUpload: localhost upload file time;
-//	tRemote: remote file last modified time;
-//
-// Return
-//
-//	localFileStatus, remoteFileStatus
-// func CheckFileState(tLocal, tUpload, tRemote int64) (int, int) {
-// 	if tLocal == 0 {
-// 		return Ob
-// 	}
-// }
 
 func CheckFile(tTarget, tUpload int64) int {
 	switch {

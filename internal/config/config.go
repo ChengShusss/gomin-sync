@@ -34,18 +34,10 @@ var (
 )
 
 func LoadConfig(path string) {
-	if Verbose {
+	if Debug {
 		fmt.Printf("Build Time: %v\n", BuildTime)
 	}
-	var file string
-	if path == "" {
-		ex, err := os.Executable()
-		if err != nil {
-			log.Fatalf("cannot get executable: %v\n", err)
-		}
-		path = filepath.Dir(ex)
-	}
-	file = filepath.Join(path, ConfigName)
+	file := filepath.Join(path, ConfigName)
 
 	data, err := os.ReadFile(file)
 	if err != nil {
