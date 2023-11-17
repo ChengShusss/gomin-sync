@@ -5,12 +5,8 @@ import (
 	"fmt"
 	"gomin-sync/internal/config"
 	"gomin-sync/internal/fileinfo"
-	"gomin-sync/internal/minioClient"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
-	"time"
 
 	"github.com/spf13/pflag"
 )
@@ -31,118 +27,75 @@ var (
 	ErrFileLocalModify  = errors.New("file modified local")
 )
 
-func pushDir(basePath string) {
-	uploadCount := 0
-	failedCount := 0
-	omitCount := 0
-	forkCount := 0
-	remoteCount := 0
+func pushDir(localPath string) {
 
 	fileinfo.LoadFileInfo("")
 	defer fileinfo.WriteFileInfo("")
 
-	filepath.WalkDir(basePath, func(p string, d fs.DirEntry, e error) error {
-		// Skip basePath
-		if p == basePath {
-			return nil
-		}
+	err := statLocalFiles(localPath)
+	if err != nil {
+		fmt.Printf("failed to scan local files, err: %v\n", err)
+		os.Exit(1)
+	}
 
-		// Skip file with specific prefix
-		for _, ig := range ignoreList {
-			if strings.HasPrefix(p, ig) {
-				return nil
+	err = statRemoteFiles(localPath, config.Config.Prefix, false)
+	if err != nil {
+		fmt.Printf("failed to scan remote files, err: %v\n", err)
+		os.Exit(1)
+	}
+
+	for f, i := range fileMap {
+		if i.RemotePath == "" {
+			relative, err := filepath.Rel(localPath, f)
+			if err != nil {
+				cnt.Failed += 1
+				fmt.Printf("Assemble remote path %v failed, err: %v\n", f, err)
+				continue
 			}
+			i.RemotePath = filepath.Join(
+				config.Config.Prefix,
+				filepath.ToSlash(relative))
 		}
+		pushFile(f, i)
+	}
 
-		// Skip dir, no need to upload
-		if d.IsDir() {
-			return nil
-		}
-
-		err := handleEntry(basePath, p, d, e)
-		if err == nil {
-			uploadCount += 1
-			return nil
-		}
-
-		switch {
-		case errors.Is(err, ErrFileForked):
-			fmt.Printf("  File %s both change local and remote\n", p)
-			forkCount += 1
-		case errors.Is(err, ErrFileNoChange):
-			if config.Verbose {
-				fmt.Printf("  File %s has no change\n", p)
-			}
-			omitCount += 1
-		case errors.Is(err, ErrFileRemoteModify):
-			fmt.Printf("  File %s changeg at remote, need update\n", p)
-			remoteCount += 1
-		default:
-			failedCount += 1
-			fmt.Printf("  Failed to Upload %s, err: %v\n", p, err)
-			return err
-		}
-
-		return nil
-	})
-
-	fmt.Printf("Uploaded %d files, Failed %d files.\n",
-		uploadCount, failedCount)
-	fmt.Printf("Nochange: %d , Remote-Changed: %d, Forked: %d\n",
-		omitCount, remoteCount, forkCount)
+	cnt.PrintCnt()
 }
 
-func handleEntry(basePath, path string, d fs.DirEntry, e error) error {
+func pushFile(f string, i fileStat) {
+	lStat := fileinfo.CheckFile(i.tLocal, i.tUpload)
+	rStat := fileinfo.CheckFile(i.tRemote, i.tUpload)
 
-	relative, err := filepath.Rel(basePath, path)
-	if err != nil {
-		return err
-	}
-	remotePath := filepath.Join(config.Config.Prefix, filepath.ToSlash(relative))
-
-	info, err := d.Info()
-	if err != nil {
-		return err
+	op := fileinfo.GetSyncStatus(lStat, rStat)
+	if config.Debug {
+		fmt.Printf("[%v] %v\n", fileinfo.OperationString(op), f)
 	}
 
-	st, err := minioClient.CheckObject(
-		config.GetBucket(), remotePath,
-		info.ModTime().Unix(), fileinfo.GetFileModifyTime(path))
-	if err != nil {
-		return err
-	}
-
-	if !config.Force {
-		switch st {
-		case minioClient.ObjectForked:
-			return ErrFileForked
-		case minioClient.ObjectNochange:
-			return ErrFileNoChange
-		case minioClient.ObjectRemoteModified:
-			return ErrFileRemoteModify
-		case minioClient.ObjectLocalModified,
-			minioClient.ObjectRemoteNotExist:
-		default:
-			return errors.New("unimplemented File Status")
-		}
-	}
-
-	n, err := minioClient.Upload(
-		config.GetBucket(), path,
-		remotePath,
-		config.Force)
-
-	if err == nil {
+	switch op {
+	case fileinfo.OpPush:
+		UploadFile(f, i.RemotePath)
+	case fileinfo.OpDelRemote:
+		// delete remote file
+		fmt.Println("! Need to implement: Del Remote file")
+	case fileinfo.OpFork:
+		// Report fork status
+		cnt.Fork += 1
+		fmt.Println("! Need to implement: Handle Forked file")
+	//
+	// ======================================================
+	//
+	case fileinfo.OpPull:
+		// TODO should print push info in pull progress?
+		return
+	case fileinfo.OpDelLocal:
+		// TODO should print push info in pull progress?
+		return
+	default:
+		// No need to operate
 		if config.Verbose {
-			fmt.Printf("  Success to Upload %s, Size: %v\n", relative, n)
+			fmt.Printf("File %v is no need to modify\n", f)
 		}
-
-		// Mark file upload time
-		fileinfo.SetFileModifyTime(path, time.Now().Unix())
-		return nil
 	}
-
-	return err
 }
 
 func PushDir() {
@@ -151,8 +104,12 @@ func PushDir() {
 		&remotePrefix, "remotePrefix", "p", "", "remote prefix add to path")
 	pflag.BoolVarP(
 		&config.Force, "forceUpload", "f", false, "force to upload files")
-	pflag.BoolVarP(
-		&config.Verbose, "verbose", "v", false, "show detailed infos")
+	pflag.BoolVarP(&config.Info, "info", "i", false,
+		"only print info, not execute actually")
+	pflag.BoolVarP(&config.Verbose, "verbose", "v", false,
+		"show detailed infos")
+	pflag.BoolVarP(&config.Debug, "debug", "", false,
+		"show debug infos")
 	pflag.CommandLine.Parse(os.Args[2:])
 
 	left := pflag.Args()

@@ -4,33 +4,15 @@ import (
 	"fmt"
 	"gomin-sync/internal/config"
 	"gomin-sync/internal/fileinfo"
-	"gomin-sync/internal/minioClient"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/pflag"
 )
 
-type fileStat struct {
-	tRemote    int64
-	tLocal     int64
-	tUpload    int64
-	RemotePath string
-}
-
-// key: local file Name; value: file info
-var syncFileMap = map[string]fileStat{}
-
 var timeOffset int64 = -32
 
 func syncDir(localPath, remotePath string) {
-	// downCount := 0
-	// failedCount := 0
-	// forkCount := 0
-	// omitCount := 0
-	// localCount := 0
 
 	fileinfo.LoadFileInfo("")
 	defer fileinfo.WriteFileInfo("")
@@ -41,13 +23,13 @@ func syncDir(localPath, remotePath string) {
 		os.Exit(1)
 	}
 
-	err = statRemoteFiles(localPath, remotePath)
+	err = statRemoteFiles(localPath, remotePath, true)
 	if err != nil {
-		fmt.Printf("failed to scan local files, err: %v\n", err)
+		fmt.Printf("failed to scan remote files, err: %v\n", err)
 		os.Exit(1)
 	}
 
-	for f, i := range syncFileMap {
+	for f, i := range fileMap {
 		if i.RemotePath == "" {
 			relative, err := filepath.Rel(localPath, f)
 			if err != nil {
@@ -61,7 +43,7 @@ func syncDir(localPath, remotePath string) {
 		syncFile(f, i)
 	}
 
-	fmt.Printf("Total %v files local and remote\n", len(syncFileMap))
+	fmt.Printf("Total %v files local and remote\n", len(fileMap))
 
 	cnt.PrintCnt()
 }
@@ -72,7 +54,7 @@ func syncFile(f string, i fileStat) {
 
 	op := fileinfo.GetSyncStatus(lStat, rStat)
 	if config.Debug {
-		fmt.Printf("[%v] %v\n", fileinfo.OperationString(op), i.RemotePath)
+		fmt.Printf("[%v] %v\n", fileinfo.OperationString(op), f)
 	}
 
 	switch op {
@@ -97,97 +79,15 @@ func syncFile(f string, i fileStat) {
 	}
 }
 
-func statLocalFiles(path string) error {
-	return filepath.WalkDir(path, func(p string, d fs.DirEntry, e error) error {
-		// Skip basePath
-		if p == path {
-			return nil
-		}
-
-		// Skip file with specific prefix
-		for _, ig := range ignoreList {
-			if strings.HasPrefix(p, ig) {
-				return nil
-			}
-		}
-
-		// Skip dir, no need to upload
-		if d.IsDir() {
-			return nil
-		}
-
-		info, ok := syncFileMap[p]
-		if !ok {
-			info = fileStat{}
-		}
-
-		i, err := d.Info()
-		if err != nil {
-			return err
-		}
-
-		info.tLocal = i.ModTime().Unix()
-		info.tUpload = fileinfo.GetFileModifyTime(p)
-
-		syncFileMap[p] = info
-		return nil
-	})
-}
-
-func statRemoteFiles(localBase, remotePath string) error {
-	if config.Debug {
-		fmt.Printf("Remote Path: %v\n", remotePath)
-	}
-
-	infoCh, err := minioClient.ListObjectsByPrefix(config.GetBucket(), remotePath)
-	if err != nil {
-		return err
-	}
-
-	for info := range infoCh {
-		if info.Err != nil {
-			return err
-		}
-
-		if strings.HasSuffix(info.Key, "/") {
-			if config.Verbose {
-				fmt.Printf("%v is dir\n", info.Key)
-			}
-			continue
-		}
-
-		// TODO need to check if localPath exist
-		filePath := normalizeLocalPath(localBase, config.Config.Prefix, info.Key)
-
-		if hasPrefix(filePath) {
-			if config.Verbose {
-				fmt.Printf("Omit remote file%v\n", filePath)
-			}
-			continue
-		}
-
-		statInfo, ok := syncFileMap[filePath]
-		if !ok {
-			statInfo = fileStat{}
-		}
-
-		statInfo.RemotePath = info.Key
-		statInfo.tRemote = info.LastModified.Unix() + timeOffset
-		statInfo.tUpload = fileinfo.GetFileModifyTime(filePath)
-
-		syncFileMap[filePath] = statInfo
-	}
-
-	return nil
-}
-
 func SyncDir() {
 	config.LoadConfig(".")
 
 	pflag.BoolVarP(&config.Info, "info", "i", false,
 		"only print info, not execute actually")
-	pflag.BoolVarP(
-		&config.Verbose, "verbose", "v", false, "show detailed infos")
+	pflag.BoolVarP(&config.Verbose, "verbose", "v", false,
+		"show detailed infos")
+	pflag.BoolVarP(&config.Debug, "debug", "", false,
+		"show debug infos")
 	pflag.CommandLine.Parse(os.Args[2:])
 
 	left := pflag.Args()
