@@ -11,3 +11,7 @@ build:
 
 clean:
 	rm build/gm-sync
+
+install: build
+	mkdir -p ~/.local/bin
+	cp build/gm-sync ~/.local/bin

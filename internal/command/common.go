@@ -57,7 +57,9 @@ func (c *Counter) PrintCnt() {
 }
 
 func UploadFile(local, remote string) {
-	fmt.Printf("Upload: %v\n", local)
+	if config.Debug {
+		fmt.Printf("Upload: %v\n", local)
+	}
 
 	var err error
 	var n int64
