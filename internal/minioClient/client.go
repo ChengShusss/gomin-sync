@@ -45,6 +45,9 @@ func getClient() (*minio.Client, error) {
 	}
 
 	TimeOffset, err = getTimeOffset()
+	if config.Verbose {
+		fmt.Printf("Time offset: %vs\n", TimeOffset)
+	}
 
 	return client, err
 }
@@ -151,6 +154,9 @@ func getTimeOffset() (int64, error) {
 	if config.Debug {
 		fmt.Printf("tLocal: %v, tRemote: %v\n", t, info.LastModified.Unix())
 	}
+
+	_ = client.RemoveObject(ctx, config.Config.Bucket, remote,
+		minio.RemoveObjectOptions{})
 
 	return info.LastModified.Unix() - t, nil
 }
