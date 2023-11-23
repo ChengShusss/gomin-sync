@@ -227,7 +227,7 @@ func statRemoteFiles(localBase, remotePath string, addRemoteItem bool) error {
 		}
 
 		statInfo.RemotePath = info.Key
-		statInfo.tRemote = info.LastModified.Unix() + timeOffset
+		statInfo.tRemote = info.LastModified.Unix() + minioClient.TimeOffset
 		statInfo.tUpload = fileinfo.GetFileModifyTime(filePath)
 
 		fileMap[filePath] = statInfo

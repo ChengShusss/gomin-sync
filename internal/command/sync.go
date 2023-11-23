@@ -10,8 +10,6 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var timeOffset int64 = -32
-
 func syncDir(localPath, remotePath string) {
 
 	fileinfo.LoadFileInfo(localPath)

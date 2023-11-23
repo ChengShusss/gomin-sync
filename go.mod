@@ -3,6 +3,7 @@ module gomin-sync
 go 1.21.1
 
 require (
+	github.com/gohouse/golib v0.0.0-20210711163732-a5c22059eb75
 	github.com/minio/minio-go/v7 v7.0.63
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/yaml.v2 v2.4.0

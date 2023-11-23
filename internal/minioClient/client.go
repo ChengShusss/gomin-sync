@@ -1,6 +1,7 @@
 package minioClient
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"gomin-sync/internal/config"
@@ -8,8 +9,9 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
-	"strings"
+	"time"
 
+	"github.com/gohouse/golib/random"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -25,7 +27,7 @@ const (
 
 var (
 	client     *minio.Client
-	timeOffset int64 = -32
+	TimeOffset int64
 )
 
 func getClient() (*minio.Client, error) {
@@ -39,7 +41,10 @@ func getClient() (*minio.Client, error) {
 	})
 	if err != nil {
 		client = nil
+		return nil, nil
 	}
+
+	TimeOffset, err = getTimeOffset()
 
 	return client, err
 }
@@ -111,63 +116,41 @@ func DownloadObject(bucket, localPath, remotePath string) error {
 	return err
 }
 
-func GetObjectModifyTime(bucket, remotePath string) (int64, error) {
+// getTimeOffset return time offset between remote and local
+// return tRemote - tLocal, value is approximately since this function only use
+// once upload to measure time delay.
+func getTimeOffset() (int64, error) {
 	client, err := GetClient()
 	if err != nil {
 		return 0, err
 	}
 	ctx := context.TODO()
-	info, err := client.StatObject(
-		ctx, bucket, remotePath, minio.StatObjectOptions{})
-	if err == nil {
-		return info.LastModified.Unix() + timeOffset, nil
+	tmpFileName := ".sync-" + random.RandString(15)
+	if config.Debug {
+		fmt.Printf("tmp: %v\n", tmpFileName)
 	}
 
-	if strings.Contains(err.Error(), "The specified key does not exist") {
-		// Means not Object-Not-Exists error, should return origin error
-		return 0, nil
-	}
+	buf := []byte{}
+	buff := bytes.NewReader(buf)
 
-	return 0, err
-}
-
-func CheckObject(bucket, remotePath string, tLocal, tLastUpload int64) (int, error) {
-	client, err := GetClient()
+	remote := filepath.Join(config.Config.Prefix, tmpFileName)
+	_, err = client.PutObject(
+		ctx, config.Config.Bucket, remote, buff, 0,
+		minio.PutObjectOptions{ContentType: "text/plain"})
 	if err != nil {
-		return ObjectInvalid, err
+		return 0, err
 	}
-	ctx := context.TODO()
+
+	t := time.Now().Unix()
 	info, err := client.StatObject(
-		ctx, bucket, remotePath, minio.StatObjectOptions{})
-	if err == nil {
-		tRemote := info.LastModified.Unix() + timeOffset
-		if config.Verbose {
-			fmt.Printf("%v: tLocal: %d, tLastUpload: %d, tRemote: %v\n",
-				remotePath, tLocal, tLastUpload, tRemote)
-		}
-		if tRemote >= tLastUpload {
-			// file changed remotely after last upload from local
-			if tLocal >= tLastUpload {
-				// file also changed locally
-				return ObjectForked, nil
-			}
-			return ObjectRemoteModified, nil
-
-		} else {
-			if tLastUpload >= tLocal {
-				// There is no change for this file
-				return ObjectNochange, nil
-			}
-			// Only change happend locally, go stright
-			return ObjectLocalModified, nil
-		}
-
+		ctx, config.Config.Bucket, remote, minio.StatObjectOptions{})
+	if err != nil {
+		return 0, err
 	}
 
-	if strings.Contains(err.Error(), "The specified key does not exist") {
-		// Means not Object-Not-Exists error, should return origin error
-		return ObjectRemoteNotExist, nil
+	if config.Debug {
+		fmt.Printf("tLocal: %v, tRemote: %v\n", t, info.LastModified.Unix())
 	}
 
-	return ObjectInvalid, err
+	return info.LastModified.Unix() - t, nil
 }
