@@ -56,6 +56,10 @@ func syncFile(f string, i fileStat) {
 	if config.Debug {
 		fmt.Printf("[%v] %v\n", fileinfo.OperationString(op), f)
 	}
+	if config.Debug {
+		fmt.Printf("  tLocal: %v, tUpload: %v, tRemote:%v\n",
+			i.tLocal, i.tUpload, i.tRemote)
+	}
 
 	switch op {
 	case fileinfo.OpPush:
@@ -74,7 +78,7 @@ func syncFile(f string, i fileStat) {
 		fmt.Printf("! Need to implement: Handle Forked file")
 	default:
 		// No need to operate
-		if config.Verbose {
+		if config.Debug {
 			fmt.Printf("File %v is no need to modify\n", f)
 		}
 	}
